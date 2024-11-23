@@ -1,21 +1,14 @@
-const urlAPI = "https://api.open-meteo.com/v1/forecast";
-const paramsAPI =
-  "?latitude=38.9161&longitude=-6.3437&current=temperature_2m,is_day,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&timezone=Europe%2FBerlin&forecast_days=3";
-const URL = `${urlAPI}${paramsAPI}`;
+import * as c from "./constants.js";
 
-const currentTemperature = document.getElementById("current-temperature");
-const iconImage = document.querySelector("#icon-container>img");
-
+const currentTemperatureElement = document.getElementById(
+  "current-temperature"
+);
+const iconSunImage = document.querySelector(".sun");
+const iconMoonImage = document.querySelector(".moon");
 const rowTime = document.querySelectorAll(".row-time");
 const rowIcon = document.querySelectorAll(".row-icon");
 const rowTemperature = document.querySelectorAll(".row-temperature");
 const weatherPhrase = document.querySelector("#weather-phrase");
-
-const miguelPhrases = [
-  "Si el viento sigue así, la cerveza va a ser mi única compañera de vuelo.",
-  "Este viento me está llevando directo a la nevera, ¡a buscar otra cerveza!",
-  "Con este viento, la cerveza no necesita volar para conquistarme.",
-];
 
 async function request(url) {
   try {
@@ -24,12 +17,13 @@ async function request(url) {
       throw new Error(`Error de red: ${response.statusText}`);
     }
     let data = await response.json();
-    currentTemperature.innerText = data.current.temperature_2m;
+    let currentTemperature = data.current.temperature_2m;
+    currentTemperatureElement.innerText = currentTemperature;
 
     if (data.current.is_day === 0) {
-      iconImage.setAttribute("src", "./src/images/moon.png");
+      iconMoonImage.classList.add("set-animation-right");
     } else if (data.current.is_day === 1) {
-      iconImage.setAttribute("src", "./src/images/sun.png");
+      iconSunImage.classList.add("set-animation-left");
     }
 
     let currentTime = data.current.time;
@@ -42,14 +36,14 @@ async function request(url) {
     let index = hourlyTime.findIndex((el) => el === currentTime);
 
     rowTime[0].innerHTML = `
-      <span>Now</span>
+      <span>Ahora</span>
     `;
 
     rowIcon[0].innerHTML = `
       <span>${hourlyWeatherCode[index]}</span>
     `;
 
-    let temperature = Math.round(hourlyTemperature[index]);
+    let temperature = Math.round(currentTemperature);
 
     rowTemperature[0].innerHTML = `
       <span>${temperature}º</span>
@@ -67,19 +61,23 @@ async function request(url) {
       `;
 
       rowTemperature[counter].innerHTML = `
-      <span>${hourlyTemperature[i]}</span>
+      <span>${hourlyTemperature[i]}º</span>
     `;
 
       counter++;
     }
 
     let currentWindSpeed = data.current.wind_speed_10m;
-    const strongWind = 41;
-    if (currentWindSpeed > strongWind) {
-      weatherPhrase.innerText = "No saques el paraguas";
+
+    if (currentWindSpeed > c.STRONG_WIND) {
+      weatherPhrase.innerText = c.STRONG_WIND_PHRASE;
+    } else if (currentTemperature > c.HIGH_TEMPERATURE) {
+      weatherPhrase.innerText = c.HIGH_TEMPERATURE_PHRASE;
+    } else if (currentTemperature < c.LOW_TEMPERATURE) {
+      weatherPhrase.innerText = c.LOW_TEMPERATURE_PHRASE;
     } else {
-      let id = getRandomFloatArbitrary(0, miguelPhrases.length);
-      weatherPhrase.innerText = miguelPhrases[id];
+      let id = getRandomFloatArbitrary(0, c.PHRASES.length);
+      weatherPhrase.innerText = c.PHRASES[id];
     }
   } catch (error) {
     console.error("Error en la solicitud:", error.message);
@@ -90,4 +88,4 @@ function getRandomFloatArbitrary(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
 }
 
-request(URL);
+request(c.API_URL);
